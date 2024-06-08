@@ -1,5 +1,8 @@
 package com.esisba.msorder.order;
 
+
+import com.esisba.msorder.invoice.Invoice;
+import com.esisba.msorder.invoice.InvoiceRepository;
 import com.esisba.msorder.order.dtos.*;
 import com.esisba.msorder.productRow.ProductRow;
 import com.esisba.msorder.productRow.ProductRowDescriptionDto;
@@ -8,6 +11,9 @@ import com.esisba.msorder.productRow.ProductRowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
@@ -15,6 +21,7 @@ import java.util.*;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRowRepository productRowRepository;
+    private final InvoiceRepository invoiceRepository;
 
     public String createOrder(OrderRequestDto orderRequestDto) {
         Order order = Order.builder()
@@ -36,6 +43,8 @@ public class OrderService {
             productRowRepository.save(productRow);
 
         }
+
+
         return "Order created successfully";
     }
 
@@ -46,10 +55,10 @@ public class OrderService {
         for (Order order : orders) {
             orderRowDtos.add(
                     OrderRowDto.builder()
-                            .orderId(order.getId().toString())
-                            .customerName(order.getCustomerName())
-                            .orderState(order.getOrderState())
-                            .date(order.getDate())
+                            .order_number(order.getId().toString())
+                            .client_name(order.getCustomerName())
+                            .status(order.getOrderState())
+                            .delivery_date(order.getDate())
                             .totalAmount(order.getTotalAmount())
                             .build()
             );
@@ -91,6 +100,28 @@ public class OrderService {
         order.setOrderState(orderUpdatedDto.getOrderState());
         order.setDate(orderUpdatedDto.getDate());
         order.setPayedAmount(order.getPayedAmount() + orderUpdatedDto.getPayedAmount());
+        if (orderUpdatedDto.getOrderState() == OrderState.ACCEPTED) {
+            List<Invoice> invoices = invoiceRepository.findByCompanyName(order.getSupplierName());
+            Invoice invoice = null;
+            if (!invoices.isEmpty()) {
+                invoice = invoices.get(invoices.size() - 1);
+            }
+            LocalDate localDate = LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+            String monthYear = localDate.format(formatter);
+
+            if (invoice == null || !isCurrentDateInSameMonth(invoice.getDate() + "-01")) {
+                Invoice savedInvoice = Invoice.builder()
+                        .companyName(order.getSupplierName())
+                        .date(monthYear)
+                        .orderNumber(1)
+                        .status("PENDING")
+                        .build();
+                invoiceRepository.save(savedInvoice);
+            } else {
+                invoice.setOrderNumber(invoice.getOrderNumber() + 1);
+            }
+        }
         if (order.getTotalAmount() == order.getPayedAmount()) {
             order.setOrderState(OrderState.PAYED);
         }
@@ -130,7 +161,7 @@ public class OrderService {
     }
 
     public CustomerDescriptionDto getCustomerOrders(String supplierName, String customerName) {
-        CustomerDescriptionDto customer= CustomerDescriptionDto.builder()
+        CustomerDescriptionDto customer = CustomerDescriptionDto.builder()
                 .name(customerName)
                 .email("email")
                 .address("address")
@@ -140,10 +171,10 @@ public class OrderService {
         for (Order order : orders) {
             orderRowDtos.add(OrderRowDto.builder()
                     .totalAmount(order.getTotalAmount())
-                    .date(order.getDate())
-                    .orderState(order.getOrderState())
-                    .customerName(order.getCustomerName())
-                    .orderId(order.getId().toString())
+                    .delivery_date(order.getDate())
+                    .status(order.getOrderState())
+                    .client_name(order.getCustomerName())
+                    .order_number(order.getId().toString())
                     .build());
         }
         customer.setOrderRowDtos(orderRowDtos);
@@ -151,19 +182,33 @@ public class OrderService {
     }
 
     public List<OrderResponseDto> getOrders(String customerName) {
-       List<Order> orders= orderRepository.findByCustomerName(customerName);
-       List<OrderResponseDto> orderResponseDtos=new ArrayList<>();
-       for (Order order:orders){
-           orderResponseDtos.add(OrderResponseDto.builder()
-                           .id(order.getId())
-                           .date(order.getDate())
-                           .orderState(order.getOrderState())
-                           .supplierName(order.getSupplierName())
-                           .totalAmount(order.getTotalAmount())
-                   .build());
-       }
-       return orderResponseDtos;
+        List<Order> orders = orderRepository.findByCustomerName(customerName);
+        List<OrderResponseDto> orderResponseDtos = new ArrayList<>();
+        for (Order order : orders) {
+            orderResponseDtos.add(OrderResponseDto.builder()
+                    .id(order.getId())
+                    .date(order.getDate())
+                    .orderState(order.getOrderState())
+                    .supplierName(order.getSupplierName())
+                    .totalAmount(order.getTotalAmount())
+                    .build());
+        }
+        return orderResponseDtos;
 
 
+    }
+
+    public boolean isCurrentDateInSameMonth(String dateStr) {
+        // Parse the input date string to LocalDate
+        LocalDate inputDate = LocalDate.parse(dateStr);
+
+        // Get the current date
+        LocalDate currentDate = LocalDate.now();
+
+        // Check if the current date and input date are in the same month and year
+        YearMonth inputYearMonth = YearMonth.from(inputDate);
+        YearMonth currentYearMonth = YearMonth.from(currentDate);
+
+        return inputYearMonth.equals(currentYearMonth);
     }
 }

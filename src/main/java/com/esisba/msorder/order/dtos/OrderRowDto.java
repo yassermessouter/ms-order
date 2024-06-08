@@ -15,9 +15,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderRowDto {
-    private String date;
-    private String orderId;
-    private String customerName;
+    private String delivery_date;
+    private String order_number;
+    private String client_name;
     private Double totalAmount;
-    private OrderState orderState;
+    private OrderState status;
 }

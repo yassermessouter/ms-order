@@ -1,4 +1,5 @@
 package com.esisba.msorder.order;
+
 import com.esisba.msorder.productRow.ProductRow;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
@@ -28,6 +29,7 @@ public class Order {
     private List<ProductRow> productRows;
     private String date;
     private Double totalAmount;
+    @Enumerated(EnumType.STRING)
     private OrderState orderState;
     private Double payedAmount;
 
