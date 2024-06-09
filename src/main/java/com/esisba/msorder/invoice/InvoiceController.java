@@ -8,7 +8,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000", allowedHeaders = "*")
 public class InvoiceController {
     private final InvoiceService invoiceService;
 

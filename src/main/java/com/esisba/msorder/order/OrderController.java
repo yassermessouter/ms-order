@@ -10,8 +10,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000", allowedHeaders = "*") // Allow requests from http://localhost:3000
-
 public class OrderController {
     private final OrderService orderService;
     private final OrderRepository orderRepository;
